@@ -100,24 +100,22 @@ class SongFeatures:
     """
 
 
-    def __init__(self, song_id: str, acousticness: float, danceability: float, energy: float,
-                 instrumentalness: float, liveness: float, loudness: float, speechiness: float,
-                 tempo: float, valence: float, mode: int, key: int, duration_ms: int):
-        if not isinstance(song_id, str):
-            raise ValueError("song_id must be a string.")
-        self.song_id = song_id
-        self.acousticness = acousticness
-        self.danceability = danceability
-        self.energy = energy
-        self.instrumentalness = instrumentalness
-        self.liveness = liveness
-        self.loudness = loudness
-        self.speechiness = speechiness
-        self.tempo = tempo
-        self.valence = valence
-        self.mode = mode
-        self.key = key
-        self.duration_ms = duration_ms
+    def __init__(self, features_info: dict):
+        if not isinstance(features_info, dict):
+            raise ValueError("features_info must be a dictionary." + " but is " + str(type(features_info)))
+        self.song_id = features_info["id"]
+        self.acousticness = features_info["acousticness"]
+        self.danceability = features_info["danceability"]
+        self.energy = features_info["energy"]
+        self.instrumentalness = features_info["instrumentalness"]
+        self.liveness = features_info["liveness"]
+        self.loudness = features_info["loudness"]
+        self.speechiness = features_info["speechiness"]
+        self.tempo = features_info["tempo"]
+        self.valence = features_info["valence"]
+        self.mode = features_info["mode"]
+        self.key = features_info["key"]
+        self.duration_ms = features_info["duration_ms"]
 
 
     def csv(self) -> str:
@@ -138,16 +136,18 @@ class ArtistInfo:
     """
 
 
-    def __init__(self, artist_id: str, name: str, genres: str):
+    def __init__(self, artist_id: str, name: str, genres: str, popularity: int, followers: int):
         if not isinstance(artist_id, str):
             raise ValueError("artist_id must be a string.")
         self.artist_id = artist_id
         self.name = name
         self.genres = genres
+        self.popularity = popularity
+        self.followers = followers
 
     
     def csv(self) -> str:
-        return f"{self.artist_id},{self.name},{self.genres}"
+        return f"{self.artist_id},{self.name},{self.genres},{self.popularity},{self.followers}"
     
 
     def __eq__(self, other) -> bool:
@@ -256,7 +256,9 @@ class SongsDB:
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS artists (
                              artist_spotify_id TEXT PRIMARY KEY,
                              name TEXT,
-                             genres TEXT);
+                             genres TEXT,
+                             popularity INTEGER,
+                             followers INTEGER);
                             """)
         
 
@@ -315,8 +317,8 @@ class SongsDB:
     def artists_insert(self, artist: ArtistInfo) -> None:
         try:
             self.cursor.execute("""INSERT INTO artists
-                                 (artist_spotify_id, name, genres)
-                                 VALUES (?, ?, ?)""", (artist.artist_id, artist.name, artist.genres))
+                                 (artist_spotify_id, name, genres, popularity, followers)
+                                 VALUES (?, ?, ?, ?, ?)""", (artist.artist_id, artist.name, artist.genres, artist.popularity, artist.followers))
             self.conn.commit()
         except Exception as exception:
             raise DBException(artist.artist_id, artist.name, *exception.args)
@@ -350,7 +352,6 @@ class SongsDB:
         return self.cursor.fetchall()
     
 
-
     def get_artists(self) -> list:
         self.cursor.execute("SELECT * FROM artists")
         return self.cursor.fetchall()
@@ -359,6 +360,41 @@ class SongsDB:
     def get_albums(self) -> list:
         self.cursor.execute("SELECT * FROM albums")
         return self.cursor.fetchall()
+    
+
+    def get_distinct_artists_id(self) -> list:
+        self.cursor.execute("""SELECT DISTINCT artist_spotify_id FROM songs
+                               WHERE artist_spotify_id NOT IN (SELECT artist_spotify_id FROM artists);""")
+        return self.cursor.fetchall()
+    
+
+    def get_distinct_albums_id(self) -> list:
+        self.cursor.execute("""SELECT DISTINCT album_spotify_id FROM songs
+                               WHERE album_spotify_id NOT IN (SELECT album_spotify_id FROM albums);""")
+        return self.cursor.fetchall()
+    
+
+    def get_distinct_songs_id(self) -> list:
+        self.cursor.execute("""SELECT DISTINCT song_spotify_id FROM songs
+                               WHERE song_spotify_id NOT IN (SELECT song_spotify_id FROM songs_features);""")
+        return self.cursor.fetchall()
+    
+
+    def get_query_database(self, query: str) -> list:
+        self.cursor.execute(query)
+        return self.cursor.fetchall()
+    
+    
+
+    # ================== UPDATE METHODS ==================
+    def update_song_popularity(self, song_id: str, popularity: int) -> None:
+        try:
+            self.cursor.execute("""UPDATE songs
+                                SET popularity = ?
+                                WHERE song_spotify_id = ?""", (popularity, song_id))
+            self.conn.commit()
+        except Exception as exception:
+            raise DBException(song_id, popularity, *exception.args)
     
 
 
