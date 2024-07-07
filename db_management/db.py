@@ -2,6 +2,10 @@ import sqlite3
 import pandas as pd
 
 
+
+# --- DATA STRUCTURES ---
+
+
 class SongInfo:
     """
     Scraped song data structure.
@@ -210,6 +214,8 @@ class LyricsInfo:
 
 
 
+# --- DATABASE MANAGEMENT ---
+
 
 class SongsDB:
 
@@ -384,6 +390,27 @@ class SongsDB:
         self.cursor.execute(query)
         return self.cursor.fetchall()
     
+
+    def get_data(self) -> pd.DataFrame:
+        self.cursor.execute("""
+                            SELECT  s.title AS song_title, s.release_date AS song_release_date,
+                                    s.featured AS featured, s.popularity AS song_popularity, f.acousticness,
+                                    f.danceability, f.energy, f.instrumentalness,
+                                    f.liveness, f.loudness, f.speechiness,
+                                    f.tempo, f.valence, f.mode,
+                                    f.key, f.duration_ms, a.name AS artist_name,
+                                    a.genres AS artist_genres, a.popularity AS artist_popularity, a.followers AS artist_followers,
+                                    al.name AS album_name, al.release_date AS album_release_date, al.total_tracks AS album_total_tracks,
+                                    al.popularity AS album_popularity, l.lyrics
+                            FROM songs s
+                            LEFT JOIN songs_features f ON s.song_spotify_id = f.song_spotify_id
+                            LEFT JOIN artists a ON s.artist_spotify_id = a.artist_spotify_id
+                            LEFT JOIN albums al ON s.album_spotify_id = al.album_spotify_id
+                            LEFT JOIN lyrics l ON s.song_spotify_id = l.song_spotify_id;
+                            """)
+
+        return pd.DataFrame(self.cursor.fetchall(), columns=[description[0] for description in self.cursor.description])
+    
     
 
     # ================== UPDATE METHODS ==================
@@ -416,16 +443,6 @@ class SongsDB:
     def close_connection(self) -> None:
         self.conn.close()
 
-
-
-
-
-
-
-# TODO:
-
-# - implement getting the playlists from Spotify API and populating the database with the songs along with ids and other stuff
-# - implement a method to get the features of the songs from the Spotify API and populate the database with the features
 
 
 
