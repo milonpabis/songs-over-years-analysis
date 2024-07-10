@@ -4,3 +4,5 @@ data/*
 *.csv
 *pycache*
 *.db
+cufile.log
+
