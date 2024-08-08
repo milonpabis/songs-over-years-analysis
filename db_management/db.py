@@ -410,6 +410,19 @@ class SongsDB:
                             """)
 
         return pd.DataFrame(self.cursor.fetchall(), columns=[description[0] for description in self.cursor.description])
+
+
+    def get_data_full(self) -> pd.DataFrame:
+        self.cursor.execute("""
+                            SELECT *
+                            FROM songs s
+                            LEFT JOIN songs_features f ON s.song_spotify_id = f.song_spotify_id
+                            LEFT JOIN artists a ON s.artist_spotify_id = a.artist_spotify_id
+                            LEFT JOIN albums al ON s.album_spotify_id = al.album_spotify_id
+                            LEFT JOIN lyrics l ON s.song_spotify_id = l.song_spotify_id;
+                            """)
+
+        return pd.DataFrame(self.cursor.fetchall(), columns=[description[0] for description in self.cursor.description])
     
     
 
