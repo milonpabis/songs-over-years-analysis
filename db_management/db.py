@@ -414,7 +414,15 @@ class SongsDB:
 
     def get_data_full(self) -> pd.DataFrame:
         self.cursor.execute("""
-                            SELECT *
+                            SELECT  s.song_spotify_id as song_id, s.title AS song_title, s.release_date AS song_release_date,
+                                    s.featured AS featured, s.popularity AS song_popularity, f.acousticness,
+                                    f.danceability, f.energy, f.instrumentalness,
+                                    f.liveness, f.loudness, f.speechiness,
+                                    f.tempo, f.valence, f.mode,
+                                    f.key, f.duration_ms, a.name AS artist_name,
+                                    a.genres AS artist_genres, a.popularity AS artist_popularity, a.followers AS artist_followers,
+                                    al.name AS album_name, al.release_date AS album_release_date, al.total_tracks AS album_total_tracks,
+                                    al.popularity AS album_popularity, l.lyrics
                             FROM songs s
                             LEFT JOIN songs_features f ON s.song_spotify_id = f.song_spotify_id
                             LEFT JOIN artists a ON s.artist_spotify_id = a.artist_spotify_id
